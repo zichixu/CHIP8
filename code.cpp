@@ -1,8 +1,8 @@
 #include <cstdint>
 #include <fstream>
-#include <chrono>
 #include <random>
 #include <cstring>
+#include <iostream>
 
 
 using namespace std;
@@ -52,8 +52,8 @@ public:
     uint8_t sp{};
     uint8_t delayTimer{};
     uint8_t soundTimer{};
-    uint8_t keypad{};
-    uint32_t video[64 * 32]{};
+    uint8_t keypad[16]{};
+    uint32_t video[32][64]{};
     uint16_t opcode;
 
 private:
@@ -69,6 +69,24 @@ private:
     void Chip8::OP_6xkk();
     void Chip8::OP_7xkk();
     void Chip8::OP_8xy0();
+    void Chip8::OP_8xy1();
+    void Chip8::OP_8xy2();
+    void Chip8::OP_8xy3();
+    void Chip8::OP_8xy4();
+    void Chip8::OP_8xy5();
+    void Chip8::OP_8xy6();
+    void Chip8::OP_8xy7();
+    void Chip8::OP_8xyE();
+    void Chip8::OP_9xy0();
+    void Chip8::OP_Annn();
+    void Chip8::OP_Bnnn();
+    void Chip8::OP_Cxkk();
+    void Chip8::OP_Dxyn();
+    void Chip8::OP_Ex9E();
+    void Chip8::OP_ExA1();
+    void Chip8::OP_Fx07();
+    void Chip8::OP_Fx0A();
+    void Chip8::OP_Fx15();
 
 };
 
@@ -111,9 +129,13 @@ Chip8::Chip8(){
 
 void Chip8::OP_00E0(){
 
-    for(int i = 0; i < sizeof(video); ++i){
+    for (int i = 0; i < 64; ++i){
 
-        video[i] = 0;
+        for (int j = 0; j < 32; ++j){
+
+            video[j][i] = 0;
+
+        }
 
     }
     
@@ -129,9 +151,7 @@ void Chip8::OP_00EE(){
 
 void Chip8::OP_1nnn(){
 
-    int address = opcode & 0x0FFFu;
-
-    pc = address;
+    pc = opcode & 0x0FFFu;
 
 }
 
@@ -208,6 +228,261 @@ void Chip8::OP_8xy0(){
     registers[x] = registers[y];
 
 }
+
+void Chip8::OP_8xy1(){
+
+    int x = opcode & 0x0F00u;
+    int y = opcode & 0x00F0u;
+
+    registers[x] = registers[x] | registers[y];
+
+}
+
+void Chip8::OP_8xy2(){
+
+    int x = opcode & 0x0F00u;
+    int y = opcode & 0x00F0u;
+
+    registers[x] = registers[x] & registers[y];
+
+}
+
+void Chip8::OP_8xy3(){
+
+    int x = opcode & 0x0F00u;
+    int y = opcode & 0x00F0u;
+
+    registers[x] = registers[x] ^ registers[y];
+
+}
+
+void Chip8::OP_8xy4(){
+
+    int x = opcode & 0x0F00u;
+    int y = opcode & 0x00F0u;
+
+    registers[x] = registers[x] + registers[y];
+
+    if (registers[x] > 0x00FFu){
+
+        registers[0xFu] = 1;
+
+    }
+    else{
+
+        registers[0xFu] = 0;
+
+    }
+
+}
+
+void Chip8::OP_8xy5(){
+
+    int x = opcode & 0x0F00u;
+    int y = opcode & 0x00F0u;
+
+    if (registers[x] > registers[y]){
+
+        registers[0xFu] = 1;
+
+    }
+    else{
+
+        registers[0xFu] = 0;
+        
+    }
+
+    registers[x] = registers[x] - registers[y];
+
+}
+
+void Chip8::OP_8xy6(){
+
+    int x = opcode & 0x0F00u;
+    
+    int lsb = registers[x] & 0b00000001u;
+
+    if (lsb == 1){
+
+        registers[0xFu] = 1;
+
+    }
+    else{
+
+        registers[0xFu] = 0;
+
+    }
+
+    registers[x] = registers[x] / 2;
+
+}
+
+void Chip8::OP_8xy7(){
+
+    int x = opcode & 0x0F00u;
+    int y = opcode & 0x00F0u;
+
+    if (registers[y] > registers[x]){
+
+        registers[0xFu] = 1;
+
+    }
+    else{
+
+        registers[0xFu] = 0;
+        
+    }
+
+    registers[x] = registers[y] - registers[x];
+
+
+}
+
+void Chip8::OP_8xyE(){
+
+    int x = opcode & 0x0F00u;
+
+    int msb = registers[x] >> 7;
+
+    if (msb == 1){
+
+        registers[0xFu] = 1;
+
+    }
+    else{
+
+        registers[0xFu] = 0;
+
+    }
+
+    registers[x] = registers[x] * 2;
+
+}
+
+void Chip8::OP_9xy0(){
+
+    int x = opcode & 0x0F00u;
+    int y = opcode & 0x00F0u;
+
+    if (registers[x] != registers[y]){
+
+        pc += 2;
+
+    }    
+
+}
+
+void Chip8::OP_Annn(){
+
+    index = opcode & 0x0FFFu;
+
+}
+
+void Chip8::OP_Bnnn(){
+
+    int nnn = opcode & 0x0FFFu;
+
+    pc = nnn + registers[0];
+
+}
+
+void Chip8::OP_Cxkk(){
+
+    random_device rd; // obtain a random number from hardware
+    mt19937 gen(rd()); // seed the generator
+    uniform_int_distribution<> distr(0, 225); // define the range
+
+    int x = opcode & 0x0F00u;
+    int kk = opcode & 0x00FFu;
+
+    int random = distr(gen);
+
+    registers[x] = random & kk;
+
+}
+
+void Chip8::OP_Dxyn(){
+
+    int n = opcode & 0x000Fu;
+
+    int address = index;
+
+    for (int i = 0; i < n; ++i){
+
+        int x = opcode & 0x0F00u;
+        int y = opcode & 0x00F0u;
+
+        int currentState = video[y][x];
+
+        video[y][x] = video[y][x];
+
+    }
+
+}
+
+void Chip8::OP_Ex9E(){
+
+    int x = opcode & 0x0F00u;
+
+    if (keypad[registers[x]] == 1){
+
+        pc += 2;
+
+    }
+
+}
+
+void Chip8::OP_ExA1(){
+    
+    int x = opcode & 0x0F00u;
+
+    if (keypad[registers[x]] == 0){
+
+        pc += 2;
+
+    }
+
+}
+
+void Chip8::OP_Fx07(){
+
+    int x = opcode & 0x0F00u;
+
+    registers[x] = delayTimer;
+
+}
+
+void Chip8::OP_Fx0A(){
+
+    bool input = false;
+
+    while (input == false){
+
+        
+
+    }
+
+}
+
+void Chip8::OP_Fx15(){
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
