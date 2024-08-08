@@ -3,19 +3,10 @@
 #include <random>
 #include <cstring>
 #include <iostream>
-#include <SDL.h>
-
-
+#include <chrono>
+#include <SDL2/SDL.h>
 
 using namespace std;
-
-
-
-int main(){
-
-    //type shii
-
-}
 
 const unsigned int START_ADDRESS = 0x200;
 
@@ -998,7 +989,49 @@ void Chip8::OP_Fx65(){
 
 }
 
+int main(int argc, char** argv){
+    //type shii
 
+    if (argc != 4){
+        cerr << "Usage: " << argv[0] << " <scale> <delay> <rom>\n";
+        exit(EXIT_FAILURE);
+
+    }
+
+    int scale = stoi(argv[1]);
+    int delay = stoi(argv[2]);
+    const char* rom = argv[3];
+
+    Platform platform("Chip8", VIDEO_WIDTH * scale, VIDEO_HEIGHT * scale, VIDEO_WIDTH, VIDEO_HEIGHT);
+
+    Chip8 chip8;
+    chip8.loadRom(rom);
+
+    int videoPitch = sizeof(chip8.video[0]);
+    
+    auto lastCycleTime = chrono::high_resolution_clock::now();
+    bool quit = false;
+
+    while (!quit){
+        quit = platform.ProcessInput(chip8.keypad);
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float dt = chrono::duration<float, chrono::milliseconds::period>(currentTime - lastCycleTime).count();
+
+        if (dt > delay){
+            lastCycleTime = currentTime;
+
+            chip8.Cycle();
+
+            platform.Update(chip8.video, videoPitch);
+        }
+
+
+    }
+
+    return 0;
+
+}
 
 
 

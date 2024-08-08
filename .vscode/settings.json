@@ -2,5 +2,6 @@
     "files.associations": {
         "chrono": "cpp",
         "*.tcc": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": true
 }
