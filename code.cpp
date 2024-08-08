@@ -990,12 +990,12 @@ void Chip8::OP_Fx65(){
 }
 
 int main(int argc, char** argv){
-    //type shii
+    // type shii
+    // type splish
 
     if (argc != 4){
         cerr << "Usage: " << argv[0] << " <scale> <delay> <rom>\n";
         exit(EXIT_FAILURE);
-
     }
 
     int scale = stoi(argv[1]);
@@ -1012,7 +1012,7 @@ int main(int argc, char** argv){
     auto lastCycleTime = chrono::high_resolution_clock::now();
     bool quit = false;
 
-    while (!quit){
+    while (!quit) {
         quit = platform.ProcessInput(chip8.keypad);
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -1025,8 +1025,6 @@ int main(int argc, char** argv){
 
             platform.Update(chip8.video, videoPitch);
         }
-
-
     }
 
     return 0;
