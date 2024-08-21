@@ -271,15 +271,13 @@ private:
 	SDL_Texture* texture{};
 };
 
-
-
 class Chip8 {
 
 public:
 
     void loadRom(char const* fileName);
     uint8_t keypad[KEY_COUNT]{};
-    uint32_t video[VIDEO_WIDTH][VIDEO_HEIGHT]{};
+    uint32_t video[VIDEO_HEIGHT][VIDEO_WIDTH]{};
     Chip8();
     void Cycle();
     
@@ -452,13 +450,13 @@ void Chip8::Table8(){
 
 void Chip8::TableE(){
 
-    ((*this).*(table8[opcode & 0x000Fu]))();
+    ((*this).*(tableE[opcode & 0x000Fu]))();
 
 }
 
 void Chip8::TableF(){
 
-    ((*this).*(table8[opcode & 0x00FFu]))();
+    ((*this).*(tableF[opcode & 0x00FFu]))();
 
 }
 
@@ -498,13 +496,12 @@ void Chip8::OP_00E0(){
         }
 
     }
-    
 
 }
 
 void Chip8::OP_00EE(){
 
-    pc = stack[sp - 1];
+    pc = stack[sp];
     --sp;
 
 }
@@ -634,6 +631,10 @@ void Chip8::OP_8xy4(){
 
     }
 
+    registers[x] = registers[x] & 0x00FFu;
+
+
+
 }
 
 void Chip8::OP_8xy5(){
@@ -662,18 +663,9 @@ void Chip8::OP_8xy6(){
     
     int lsb = registers[x] & 0b00000001u;
 
-    if (lsb == 1){
+    registers[0xFu] = lsb;
 
-        registers[0xFu] = 1;
-
-    }
-    else{
-
-        registers[0xFu] = 0;
-
-    }
-
-    registers[x] = registers[x] / 2;
+    registers[x] = registers[x] >> 1;
 
 }
 
@@ -704,18 +696,9 @@ void Chip8::OP_8xyE(){
 
     int msb = registers[x] >> 7;
 
-    if (msb == 1){
+    registers[0xFu] = msb;
 
-        registers[0xFu] = 1;
-
-    }
-    else{
-
-        registers[0xFu] = 0;
-
-    }
-
-    registers[x] = registers[x] * 2;
+    registers[x] = registers[x] << 1;
 
 }
 
@@ -770,7 +753,7 @@ void Chip8::OP_Dxyn(){
     int xPos = registers[x] % VIDEO_WIDTH;
     int yPos = registers[y] % VIDEO_HEIGHT;
 
-    registers[0xF] = 0;
+    registers[0xFu] = 0;
 
     for (int row = 0; row < n; ++row){
 
@@ -779,7 +762,7 @@ void Chip8::OP_Dxyn(){
         for (int col = 0; col < 8; ++col){
 
             int spritePixel = spriteByte & (0x80u >> col);
-            uint32_t* screenPixel = &video[(yPos + row) % VIDEO_HEIGHT][(xPos + col) % VIDEO_WIDTH];
+            uint32_t* screenPixel = &video[(yPos + row)][(xPos + col)];
 
             if (spritePixel){
 
@@ -792,11 +775,8 @@ void Chip8::OP_Dxyn(){
                 *screenPixel ^= 0xFFFFFFFF;
 
             }
-
         }
-
     }
-
 }
 
 void Chip8::OP_Ex9E(){
@@ -834,88 +814,21 @@ void Chip8::OP_Fx07(){
 void Chip8::OP_Fx0A(){
 
     int x = (opcode & 0x0F00u) >> 8;
+    bool pressed = false;
 
-    if (keypad[0]){
+    for (int i = 0; i < sizeof(keypad); ++i){
 
-        registers[x] == 0;
+        if (keypad[i] == 1){
 
-    }
-    else if (keypad[1]){
+            registers[x] = i;
+            pressed = true;
+            break;
 
-        registers[x] = 1;
-
-    }
-    else if (keypad[2]){
-
-        registers[x] = 2;
+        }
 
     }
-    else if (keypad[3]){
 
-        registers[x] = 3;
-
-    }
-    else if (keypad[4]){
-
-        registers[x] = 4;
-
-    }
-    else if (keypad[5]){
-
-        registers[x] = 5;
-
-    }
-    else if (keypad[6]){
-
-        registers[x] = 6;
-
-    }
-    else if (keypad[7]){
-
-        registers[x] = 7;
-
-    }
-    else if (keypad[8]){
-
-        registers[x] = 8;
-
-    }
-    else if (keypad[9]){
-
-        registers[x] = 9;
-
-    }
-    else if (keypad[10]){
-
-        registers[x] = 10;
-
-    }
-    else if (keypad[11]){
-
-        registers[x] = 11;
-
-    }
-    else if (keypad[12]){
-
-        registers[x] = 12;
-
-    }
-    else if (keypad[13]){
-
-        registers[x] = 13;
-
-    }
-    else if (keypad[14]){
-
-        registers[x] = 14;
-
-    }
-    else if (keypad[15]){
-
-        registers[x] = 15;
-
-    }
-    else{
+    if (!pressed){
 
         pc -= 2;
 
@@ -959,8 +872,8 @@ void Chip8::OP_Fx33(){
     
     int x = (opcode & 0x0F00u) >> 8;
 
-    memory[index] = (registers[x] / 100) % 10;
-    memory[index + 1] = (registers[x] / 10) % 10;
+    memory[index] = (registers[x] / 100);
+    memory[index + 1] = (registers[x] % 10) / 10;
     memory[index + 2] = registers[x] % 10;
 
 }
